@@ -1,9 +1,12 @@
 <?php
 session_start();
+include '../config/db.php';
 
 if (empty($_SESSION['email'])) {
     header('location: ../index.php?access-failed');
 }
+
+$queryData = mysqli_query($connection, "SELECT * FROM transaksi ORDER BY id DESC")
 ?>
 
 <!DOCTYPE html>
@@ -43,14 +46,19 @@ if (empty($_SESSION['email'])) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                    </tr>
+                                    <?php
+                                    $no = 1;
+                                    while ($resultDataPenjualan = mysqli_fetch_assoc($queryData)):
+                                    ?>
+                                        <tr>
+                                            <td><?= $no++ ?></td>
+                                            <td><?= $resultDataPenjualan['kode_transaksi'] ?></td>
+                                            <td><?= $resultDataPenjualan['tanggal_transaksi'] ?></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                        </tr>
+                                    <?php endwhile ?>
                                 </tbody>
                             </table>
                         </div>

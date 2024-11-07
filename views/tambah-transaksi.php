@@ -47,7 +47,7 @@ $categories = mysqli_fetch_all($querykategori, MYSQLI_ASSOC);
                         <h1 class="text-center">Add Transaksi</h1>
                     </div>
                     <div class="card-body">
-                        <form action="" method="post">
+                        <form action="../controller/insertBarang.php" method="post">
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
@@ -82,7 +82,7 @@ $categories = mysqli_fetch_all($querykategori, MYSQLI_ASSOC);
                                             <th>Harga</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="tbody">
+                                    <tbody id="tbody" class="text-center">
                                     </tbody>
                                     <tfoot class="text-center">
                                         <tr>
@@ -132,9 +132,122 @@ $categories = mysqli_fetch_all($querykategori, MYSQLI_ASSOC);
                 <?php foreach ($categories as $category) { ?>
                     newRow += "<option value='<?= $category['id'] ?>'><?= $category['nama_kategori'] ?></option>"
                 <?php } ?>
+                newRow += "<td><select class='form-control item-select' name='barang[]' required>";
+                newRow += "<option value=''>--pilih barang--</option>"
                 newRow += "</select></td>"
+                newRow += "<td><input type='number' name='jumlah[]' class='form-control jumlah-input' value='0' required></td>"
+                newRow += "<td><input type='number' name='sisa_produk[]' class='form-control' readonly></td>"
+                newRow += "<td><input type='number' name='harga[]' class='form-control' readonly></td>"
                 newRow += "</tr>"
                 tbody.insertAdjacentHTML('beforeend', newRow);
+
+                attachCategoryChangeListener()
+                attactItemChangeListener()
+                attachJumlahChangeListener()
+            })
+
+            const attachCategoryChangeListener = () => {
+                const categorySelects = document.querySelectorAll('.category-select');
+                categorySelects.forEach(Select => {
+                    Select.addEventListener('change', function() {
+                        const categoryId = this.value
+                        const itemSelect = this.closest('tr').querySelector('.item-select')
+                        console.log(categoryId);
+                        console.log(itemSelect);
+
+                        if (categoryId) {
+                            fetch(`../controller/get-product-dari-category.php?id_kategori=${categoryId}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    console.log(data);
+
+                                    itemSelect.innerHTML = "<option value=''>--pilih barang--</option>"
+                                    data.forEach(item => {
+                                        itemSelect.innerHTML += `<option value='${item.id}'>${item.nama_barang}</option>`
+                                    })
+
+                                })
+                        } else {
+                            itemSelect.innerHTML = "<option value=''>--pilih barang--</option>"
+                        }
+                    })
+                })
+            }
+
+            const attactItemChangeListener = () => {
+                const itemSelects = document.querySelectorAll('.item-select')
+                itemSelects.forEach(select => {
+                    select.addEventListener('change', function() {
+                        const itemId = this.value
+                        const row = this.closest('tr')
+                        const sisaProdukInput = row.querySelector('input[name="sisa_produk[]"]')
+                        const hargaInput = row.querySelector('input[name = "harga[]"]')
+
+                        if (itemId) {
+                            fetch(`../controller/get-barang-details.php?id_barang=${itemId}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    console.log(data);
+                                    sisaProdukInput.value = data.qty
+                                    hargaInput.value = data.harga
+                                })
+                        } else {
+                            sisaProdukInput.value = ''
+                            hargaInput.value = ''
+                        }
+                    })
+                })
+            }
+
+            // untuk menentukan jumlah barang yang diinput
+            const total_harga = document.getElementById('total_harga_keseluruhan');
+            const nominalBayarKeseluruhanInput = document.getElementById('nominal_bayar')
+            const kembalianKeseluruhan = document.getElementById('kembalian')
+
+            const attachJumlahChangeListener = () => {
+                const jumlahInputs = document.querySelectorAll('.jumlah-input')
+                jumlahInputs.forEach(input => {
+                    input.addEventListener('input', function() {
+                        const row = this.closest('tr')
+                        const sisaProdukInput = row.querySelector('input[name="sisa_produk[]"]')
+                        const hargaInput = row.querySelector('input[name="harga[]"]')
+                        const totalHargaInput = document.getElementById('total_harga_keseluruhan');
+                        const nominalBayarInput = document.getElementById('nominal_bayar');
+                        const kembalianInput = document.getElementById('kembalian')
+
+                        const jumlah = parseInt(this.value) || 0;
+                        const sisaProduk = parseInt(sisaProdukInput.value) || 0;
+                        const harga = parseFloat(hargaInput.value) || 0;
+
+                        if (jumlah > sisaProduk) {
+                            alert('Jumlah melebihi sisa produk')
+                            this.value = sisaProduk;
+                            return;
+                        }
+                        updateTotalKeseluruhan()
+                    })
+                })
+            }
+
+            const updateTotalKeseluruhan = () => {
+                let totalKeseluruhan = 0
+                const jumlahInput = document.querySelectorAll('.jumlah-input')
+                jumlahInput.forEach(input => {
+                    const row = input.closest('tr')
+                    const hargaInput = row.querySelector('input[name="harga[]"]')
+                    const harga = parseFloat(hargaInput.value) || 0
+                    const jumlah = parseInt(input.value) || 0
+                    totalKeseluruhan += jumlah * harga
+                })
+                total_harga.value = totalKeseluruhan
+                // console.log(total_harga.value);
+            }
+
+            // membuat kembalian...
+            nominalBayarKeseluruhanInput.addEventListener('input', function() {
+                const nominalBayar = parseFloat(this.value) || 0
+                const totalHarga = parseFloat(total_harga.value) || 0
+                kembalianKeseluruhan.value = nominalBayar - totalHarga
             })
         })
     </script>
